@@ -6,5 +6,6 @@ authors = ["Alain Galvan <hi@alain.xyz>"]
 [dependencies]
 serial = "0.3.4"
 cpal = "0.4.4"
+winit = "0.5.2"
 vulkano = "0.3.2"
 vulkano-win = "0.3.2"
