@@ -10,6 +10,7 @@ use vulkano::instance::Instance;
 use vulkano::device::Device;
 use vulkano::swapchain::{Swapchain, SurfaceTransform};
 use vulkano::buffer::{BufferUsage, CpuAccessibleBuffer};
+use vulkano::pipeline::{GraphicsPipeline, GraphicsPipelineParams};
 use vulkano_win::VkSurfaceBuild;
 
 fn main() {
@@ -55,11 +56,12 @@ fn main() {
 
     // Swapchain, Swapchain Images
     let (swapchain, images) = {
+
         let caps = window.surface()
             .get_capabilities(&physical)
             .expect("failed to get surface capabilities");
 
-        let dimensions = caps.current_extent.unwrap_or([1280, 7204]);
+        let dimensions = caps.current_extent.unwrap_or([1280, 720]);
 
         let present = caps.present_modes.iter().next().unwrap();
 
@@ -101,6 +103,19 @@ fn main() {
                                                .cloned())
                 .expect("failed to create buffer")
     };
+
+    // Shaders
+    mod vs {
+        include!{"shaders/vert.glsl"}
+    }
+
+    let vs = vs::Shader::load(&device).expect("failed to create shader module");
+
+    mod fs {
+        include!{"shaders/frag.glsl"}
+    }
+
+    let fs = fs::Shader::load(&device).expect("failed to create shader module");
 
 }
 

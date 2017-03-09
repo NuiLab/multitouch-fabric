@@ -2,6 +2,7 @@
 name = "multitouch-fabric-visualizer"
 version = "0.1.0"
 authors = ["Alain Galvan <hi@alain.xyz>"]
+build = "build.rs"
 
 [dependencies]
 serial = "0.3.4"
@@ -9,3 +10,7 @@ cpal = "0.4.4"
 winit = "0.5.2"
 vulkano = "0.3.2"
 vulkano-win = "0.3.2"
+
+[build-dependencies]
+vk-sys = "^0.2.2"
+vulkano-shaders = "0.3.2"
