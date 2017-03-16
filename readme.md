@@ -4,7 +4,7 @@
 
 [![License][license-img]][license-url]
 
-The capstone project of Janette (Electrical Engineering BSc) and Maria (Electrical Engineering BSc), a smart fabric that can respond to touch input.
+The capstone project of Janette Hernandez (Electrical Engineering BSc) and Maria Contreras (Electrical Engineering BSc), a smart fabric that can respond to touch input.
 
 To showcase the project [Alain Galvan (Computer Science MSc)](https://twitter.com/alainxyz) developed a visualizer program for the project.
 
