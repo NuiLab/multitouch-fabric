@@ -6,6 +6,9 @@ extern crate vulkano;
 extern crate winit;
 extern crate vulkano_win;
 
+use winit::get_primary_monitor;
+use winit::Event;
+
 use std::sync::Arc;
 use std::time::Duration;
 
@@ -34,17 +37,17 @@ fn main() {
     // Vulkan Instance
     let instance = {
         let extensions = vulkano_win::required_extensions();
-        Instance::new(None, &extensions, None)
-        .expect("failed to create Vulkan instance")
+        Instance::new(None, &extensions, None).expect("Failed to create Vulkan instance.")
     };
 
     // Physical Device
     let physical = vulkano::instance::PhysicalDevice::enumerate(&instance)
         .next()
-        .expect("no vulkan device is available, do you have Vulkan installed on your machine?\nVisit https://vulkan.lunarg.com/ and download the latest Vulkan SDK.");
+        .expect("No vulkan device is available.");
 
     // OS Window
     let window = winit::WindowBuilder::new()
+        .with_fullscreen(get_primary_monitor())
         .build_vk_surface(&instance)
         .unwrap();
 
@@ -106,17 +109,29 @@ fn main() {
         #[derive(Debug, Clone)]
         struct Vertex {
             position: [f32; 2],
-            uv: [f32; 2]
+            uv: [f32; 2],
         }
         impl_vertex!(Vertex, position, uv);
 
         CpuAccessibleBuffer::from_iter(&device,
                                        &BufferUsage::all(),
                                        Some(queue.family()),
-                                       [Vertex { position: [1.0, -1.0], uv: [1.0, 1.0] },
-                                        Vertex { position: [-1.0, -1.0], uv: [0.0, 1.0] },
-                                        Vertex { position: [1.0, 1.0], uv: [1.0, 0.0] },
-                                         Vertex { position: [-1.0, 1.0], uv: [0.0, 0.0] }]
+                                       [Vertex {
+                                            position: [1.0, -1.0],
+                                            uv: [1.0, 1.0],
+                                        },
+                                        Vertex {
+                                            position: [-1.0, -1.0],
+                                            uv: [0.0, 1.0],
+                                        },
+                                        Vertex {
+                                            position: [1.0, 1.0],
+                                            uv: [1.0, 0.0],
+                                        },
+                                        Vertex {
+                                            position: [-1.0, 1.0],
+                                            uv: [0.0, 0.0],
+                                        }]
                                                .iter()
                                                .cloned())
                 .expect("failed to create buffer")
@@ -240,7 +255,19 @@ fn main() {
 
         for ev in window.window().poll_events() {
             match ev {
-                winit::Event::Closed => return,
+                Event::KeyboardInput(winit::ElementState::Released,
+                                     _,
+                                     Some(winit::VirtualKeyCode::Escape)) => {
+                    println!("Closing visualizer!");
+                    return;
+                }
+                Event::MouseInput(winit::ElementState::Pressed, winit::MouseButton::Left) => {
+                    println!("Mouse");
+                }
+                Event::MouseMoved(x, y) => {
+                    println!("{:?} {:?}", x, y);
+                }
+                Event::Closed => return,
                 _ => (),
             }
         }
