@@ -29,18 +29,19 @@ use vulkano::command_buffer::Submission;
 use vulkano_win::VkSurfaceBuild;
 
 fn main() {
-    println!("👗🌋 Vulkan Multitouch Frabric Visualizer Version 0.1.0");
+    println!("👗🌋 Vulkan Multitouch Frabric Visualizer | Version 0.1.0");
 
     // Vulkan Instance
     let instance = {
         let extensions = vulkano_win::required_extensions();
-        Instance::new(None, &extensions, None).expect("failed to create Vulkan instance")
+        Instance::new(None, &extensions, None)
+        .expect("failed to create Vulkan instance")
     };
 
     // Physical Device
     let physical = vulkano::instance::PhysicalDevice::enumerate(&instance)
         .next()
-        .expect("no device available");
+        .expect("no vulkan device is available, do you have Vulkan installed on your machine?\nVisit https://vulkan.lunarg.com/ and download the latest Vulkan SDK.");
 
     // OS Window
     let window = winit::WindowBuilder::new()
@@ -50,7 +51,7 @@ fn main() {
     // Graphics Queue Supported
     let queue = physical.queue_families()
         .find(|q| q.supports_graphics() && window.surface().is_supported(q).unwrap_or(false))
-        .expect("couldn't find a graphical queue family");
+        .expect("Couldn't find a graphical queue family.");
 
     // Logical Device, Queues
     let (device, mut queues) = {
@@ -105,15 +106,17 @@ fn main() {
         #[derive(Debug, Clone)]
         struct Vertex {
             position: [f32; 2],
+            uv: [f32; 2]
         }
-        impl_vertex!(Vertex, position);
+        impl_vertex!(Vertex, position, uv);
 
         CpuAccessibleBuffer::from_iter(&device,
                                        &BufferUsage::all(),
                                        Some(queue.family()),
-                                       [Vertex { position: [-0.5, -0.25] },
-                                        Vertex { position: [0.0, 0.5] },
-                                        Vertex { position: [0.25, -0.1] }]
+                                       [Vertex { position: [1.0, -1.0], uv: [1.0, 1.0] },
+                                        Vertex { position: [-1.0, -1.0], uv: [0.0, 1.0] },
+                                        Vertex { position: [1.0, 1.0], uv: [1.0, 0.0] },
+                                         Vertex { position: [-1.0, 1.0], uv: [0.0, 0.0] }]
                                                .iter()
                                                .cloned())
                 .expect("failed to create buffer")
