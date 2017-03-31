@@ -137,6 +137,16 @@ fn main() {
                 .expect("failed to create buffer")
     };
 
+    let index_buffer = {
+         CpuAccessibleBuffer::from_iter(&device,
+                                       &BufferUsage::all(),
+                                       Some(queue.family()),
+                                       [0u32, 1, 2, 1, 2, 3]
+                                               .iter()
+                                               .cloned())
+                .expect("failed to create buffer")
+    };
+
     // Shaders
     mod vs {
         include!{concat!(env!("OUT_DIR"), "/shaders/src/shaders/vert.glsl")}
@@ -241,8 +251,8 @@ fn main() {
         let command_buffer = PrimaryCommandBufferBuilder::new(&device, queue.family())
             .draw_inline(&render_pass,
                          &framebuffers[image_num],
-                         render_pass::ClearValues { color: [0.0, 0.0, 1.0, 1.0] })
-            .draw(&pipeline, &vertex_buffer, &DynamicState::none(), (), &())
+                         render_pass::ClearValues { color: [0.0, 0.0, 0.0, 1.0] })
+            .draw_indexed(&pipeline, &vertex_buffer, &index_buffer, &DynamicState::none(), (), &())
             .draw_end()
             .build();
 
