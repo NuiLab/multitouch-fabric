@@ -67,7 +67,7 @@ fn main() {
                     physical.supported_features(),
                     &device_ext,
                     [(queue, 0.5)].iter().cloned())
-                .expect("failed to create device")
+            .expect("failed to create device")
     };
 
     // Device Queue
@@ -101,7 +101,7 @@ fn main() {
                        present,
                        true,
                        None)
-                .expect("failed to create swapchain")
+            .expect("failed to create swapchain")
     };
 
     // VBO
@@ -118,33 +118,33 @@ fn main() {
                                        Some(queue.family()),
                                        [Vertex {
                                             position: [1.0, -1.0],
-                                            uv: [1.0, 1.0],
-                                        },
-                                        Vertex {
-                                            position: [-1.0, -1.0],
-                                            uv: [0.0, 1.0],
-                                        },
-                                        Vertex {
-                                            position: [1.0, 1.0],
                                             uv: [1.0, 0.0],
                                         },
                                         Vertex {
-                                            position: [-1.0, 1.0],
+                                            position: [-1.0, -1.0],
                                             uv: [0.0, 0.0],
+                                        },
+                                        Vertex {
+                                            position: [1.0, 1.0],
+                                            uv: [1.0, 1.0],
+                                        },
+                                        Vertex {
+                                            position: [-1.0, 1.0],
+                                            uv: [0.0, 1.0],
                                         }]
-                                               .iter()
-                                               .cloned())
-                .expect("failed to create buffer")
+                                           .iter()
+                                           .cloned())
+            .expect("failed to create buffer")
     };
 
     let index_buffer = {
-         CpuAccessibleBuffer::from_iter(&device,
+        CpuAccessibleBuffer::from_iter(&device,
                                        &BufferUsage::all(),
                                        Some(queue.family()),
                                        [0u32, 1, 2, 1, 2, 3]
-                                               .iter()
-                                               .cloned())
-                .expect("failed to create buffer")
+                                           .iter()
+                                           .cloned())
+            .expect("failed to create buffer")
     };
 
     // Shaders
@@ -183,51 +183,50 @@ fn main() {
     let render_pass =
         render_pass::CustomRenderPass::new(&device,
                                            &render_pass::Formats {
-                                                // Use the format of the images and one sample.
-                                                color: (images[0].format(), 1),
-                                            })
-                .unwrap();
+                                               // Use the format of the images and one sample.
+                                               color: (images[0].format(), 1),
+                                           })
+            .unwrap();
 
     // Graphics Pipeline
-    let pipeline = GraphicsPipeline::new(&device,
-                                         GraphicsPipelineParams {
-                                             vertex_input: SingleBufferDefinition::new(),
+    let pipeline =
+        GraphicsPipeline::new(&device,
+                              GraphicsPipelineParams {
+                                  vertex_input: SingleBufferDefinition::new(),
 
-                                             vertex_shader: vs.main_entry_point(),
+                                  vertex_shader: vs.main_entry_point(),
 
-                                             input_assembly: InputAssembly::triangle_list(),
+                                  input_assembly: InputAssembly::triangle_list(),
 
-                                             tessellation: None,
+                                  tessellation: None,
 
-                                             geometry_shader: None,
+                                  geometry_shader: None,
 
-                                             viewport: ViewportsState::Fixed {
-                                                 data: vec![(Viewport {
-                                                                 origin: [0.0, 0.0],
-                                                                 depth_range: 0.0..1.0,
-                                                                 dimensions:
-                                                                     [images[0].dimensions()[0] as
-                                                                      f32,
-                                                                      images[0].dimensions()[1] as
-                                                                      f32],
-                                                             },
-                                                             Scissor::irrelevant())],
-                                             },
+                                  viewport: ViewportsState::Fixed {
+                                      data: vec![(Viewport {
+                                                      origin: [0.0, 0.0],
+                                                      depth_range: 0.0..1.0,
+                                                      dimensions:
+                                                          [images[0].dimensions()[0] as f32,
+                                                           images[0].dimensions()[1] as f32],
+                                                  },
+                                                  Scissor::irrelevant())],
+                                  },
 
-                                             raster: Default::default(),
+                                  raster: Default::default(),
 
-                                             multisample: Multisample::disabled(),
+                                  multisample: Multisample::disabled(),
 
-                                             fragment_shader: fs.main_entry_point(),
+                                  fragment_shader: fs.main_entry_point(),
 
-                                             depth_stencil: DepthStencil::disabled(),
+                                  depth_stencil: DepthStencil::disabled(),
 
-                                             blend: Blend::pass_through(),
+                                  blend: Blend::pass_through(),
 
-                                             layout: &EmptyPipeline::new(&device).unwrap(),
+                                  layout: &EmptyPipeline::new(&device).unwrap(),
 
-                                             render_pass: Subpass::from(&render_pass, 0).unwrap(),
-                                         })
+                                  render_pass: Subpass::from(&render_pass, 0).unwrap(),
+                              })
             .unwrap();
 
     let framebuffers = images.iter()
@@ -236,7 +235,7 @@ fn main() {
             Framebuffer::new(&render_pass,
                              dimensions,
                              render_pass::AList { color: image })
-                    .unwrap()
+                .unwrap()
         })
         .collect::<Vec<_>>();
 
@@ -252,7 +251,12 @@ fn main() {
             .draw_inline(&render_pass,
                          &framebuffers[image_num],
                          render_pass::ClearValues { color: [0.0, 0.0, 0.0, 1.0] })
-            .draw_indexed(&pipeline, &vertex_buffer, &index_buffer, &DynamicState::none(), (), &())
+            .draw_indexed(&pipeline,
+                          &vertex_buffer,
+                          &index_buffer,
+                          &DynamicState::none(),
+                          (),
+                          &())
             .draw_end()
             .build();
 
@@ -283,4 +287,3 @@ fn main() {
         }
     }
 }
-
