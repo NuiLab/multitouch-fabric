@@ -5,6 +5,7 @@ extern crate cpal;
 extern crate vulkano;
 extern crate winit;
 extern crate vulkano_win;
+extern crate glm;
 
 use winit::get_primary_monitor;
 use winit::Event;
@@ -14,6 +15,7 @@ use std::time::Duration;
 
 use vulkano::instance::Instance;
 use vulkano::device::Device;
+use vulkano::descriptor::pipeline_layout;
 use vulkano::swapchain::{Swapchain, SurfaceTransform};
 use vulkano::buffer::{BufferUsage, CpuAccessibleBuffer};
 use vulkano::pipeline::{GraphicsPipeline, GraphicsPipelineParams};
@@ -30,6 +32,15 @@ use vulkano::command_buffer::DynamicState;
 use vulkano::command_buffer::PrimaryCommandBufferBuilder;
 use vulkano::command_buffer::Submission;
 use vulkano_win::VkSurfaceBuild;
+
+
+mod vs {
+    include!{concat!(env!("OUT_DIR"), "/shaders/src/shaders/vert.glsl")}
+}
+
+mod fs {
+    include!{concat!(env!("OUT_DIR"), "/shaders/src/shaders/frag.glsl")}
+}
 
 fn main() {
     println!("👗🌋 Vulkan Multitouch Frabric Visualizer | Version 0.1.0");
@@ -67,7 +78,7 @@ fn main() {
                     physical.supported_features(),
                     &device_ext,
                     [(queue, 0.5)].iter().cloned())
-            .expect("failed to create device")
+                .expect("failed to create device")
     };
 
     // Device Queue
@@ -101,10 +112,10 @@ fn main() {
                        present,
                        true,
                        None)
-            .expect("failed to create swapchain")
+                .expect("failed to create swapchain")
     };
 
-    // VBO
+    // VBO and IBO
     let vertex_buffer = {
         #[derive(Debug, Clone)]
         struct Vertex {
@@ -132,9 +143,9 @@ fn main() {
                                             position: [-1.0, 1.0],
                                             uv: [0.0, 1.0],
                                         }]
-                                           .iter()
-                                           .cloned())
-            .expect("failed to create buffer")
+                                               .iter()
+                                               .cloned())
+                .expect("failed to create VBO")
     };
 
     let index_buffer = {
@@ -144,19 +155,55 @@ fn main() {
                                        [0u32, 1, 2, 1, 2, 3]
                                            .iter()
                                            .cloned())
-            .expect("failed to create buffer")
+                .expect("failed to create IBO")
     };
 
+    // Descriptor Pool, Descriptor Set, Pipeline Layout, Uniforms
+    let descriptor_pool = vulkano::descriptor::descriptor_set::DescriptorPool::new(&device);
+
+
+
+    let uniform_buffer = {
+        CpuAccessibleBuffer::<fs::ty::Block>::from_data(&device,
+                                                        &BufferUsage::all(),
+                                                        Some(queue.family()),
+                                                        fs::ty::Block {
+                                                            mouse: [-1., -1., -1., -1.],
+                                                            resolution: [images[0].dimensions()
+                                                                             [0] as
+                                                                         f32,
+                                                                         images[0].dimensions()
+                                                                             [1] as
+                                                                         f32],
+                                                            time: 0.,
+                                                            empty: 0.,
+                                                            fabric: [[0., 0., 0., 0.],
+                                                                     [0., 0., 0., 0.],
+                                                                     [0., 0., 0., 0.],
+                                                                     [0., 0., 0., 0.]],
+                                                        })
+                .expect("failed to create Uniform Buffer")
+    };
+
+    mod pipeline_layout {
+        pipeline_layout!{
+            set0: {
+                uniforms: UniformBuffer<::fs::ty::Block>
+            }
+        }
+    }
+
+    let pipeline_layout = pipeline_layout::CustomPipeline::new(&device).unwrap();
+
+    let set = pipeline_layout::set0::Set::new(&descriptor_pool,
+                                              &pipeline_layout,
+                                              &pipeline_layout::set0::Descriptors {
+                                                   uniforms: &uniform_buffer,
+                                               });
+
+
     // Shaders
-    mod vs {
-        include!{concat!(env!("OUT_DIR"), "/shaders/src/shaders/vert.glsl")}
-    }
-
     let vs = vs::Shader::load(&device).expect("failed to create shader module");
-
-    mod fs {
-        include!{concat!(env!("OUT_DIR"), "/shaders/src/shaders/frag.glsl")}
-    }
 
     let fs = fs::Shader::load(&device).expect("failed to create shader module");
 
@@ -183,50 +230,51 @@ fn main() {
     let render_pass =
         render_pass::CustomRenderPass::new(&device,
                                            &render_pass::Formats {
-                                               // Use the format of the images and one sample.
-                                               color: (images[0].format(), 1),
-                                           })
-            .unwrap();
+                                                // Use the format of the images and one sample.
+                                                color: (images[0].format(), 1),
+                                            })
+                .unwrap();
 
     // Graphics Pipeline
-    let pipeline =
-        GraphicsPipeline::new(&device,
-                              GraphicsPipelineParams {
-                                  vertex_input: SingleBufferDefinition::new(),
+    let pipeline = GraphicsPipeline::new(&device,
+                                         GraphicsPipelineParams {
+                                             vertex_input: SingleBufferDefinition::new(),
 
-                                  vertex_shader: vs.main_entry_point(),
+                                             vertex_shader: vs.main_entry_point(),
 
-                                  input_assembly: InputAssembly::triangle_list(),
+                                             input_assembly: InputAssembly::triangle_list(),
 
-                                  tessellation: None,
+                                             tessellation: None,
 
-                                  geometry_shader: None,
+                                             geometry_shader: None,
 
-                                  viewport: ViewportsState::Fixed {
-                                      data: vec![(Viewport {
-                                                      origin: [0.0, 0.0],
-                                                      depth_range: 0.0..1.0,
-                                                      dimensions:
-                                                          [images[0].dimensions()[0] as f32,
-                                                           images[0].dimensions()[1] as f32],
-                                                  },
-                                                  Scissor::irrelevant())],
-                                  },
+                                             viewport: ViewportsState::Fixed {
+                                                 data: vec![(Viewport {
+                                                                 origin: [0.0, 0.0],
+                                                                 depth_range: 0.0..1.0,
+                                                                 dimensions:
+                                                                     [images[0].dimensions()[0] as
+                                                                      f32,
+                                                                      images[0].dimensions()[1] as
+                                                                      f32],
+                                                             },
+                                                             Scissor::irrelevant())],
+                                             },
 
-                                  raster: Default::default(),
+                                             raster: Default::default(),
 
-                                  multisample: Multisample::disabled(),
+                                             multisample: Multisample::disabled(),
 
-                                  fragment_shader: fs.main_entry_point(),
+                                             fragment_shader: fs.main_entry_point(),
 
-                                  depth_stencil: DepthStencil::disabled(),
+                                             depth_stencil: DepthStencil::disabled(),
 
-                                  blend: Blend::pass_through(),
+                                             blend: Blend::pass_through(),
 
-                                  layout: &EmptyPipeline::new(&device).unwrap(),
+                                             layout: &pipeline_layout,
 
-                                  render_pass: Subpass::from(&render_pass, 0).unwrap(),
-                              })
+                                             render_pass: Subpass::from(&render_pass, 0).unwrap(),
+                                         })
             .unwrap();
 
     let framebuffers = images.iter()
@@ -235,7 +283,7 @@ fn main() {
             Framebuffer::new(&render_pass,
                              dimensions,
                              render_pass::AList { color: image })
-                .unwrap()
+                    .unwrap()
         })
         .collect::<Vec<_>>();
 
@@ -255,11 +303,22 @@ fn main() {
                           &vertex_buffer,
                           &index_buffer,
                           &DynamicState::none(),
-                          (),
+                          &set,
                           &())
             .draw_end()
             .build();
 
+        {
+            // aquiring write lock for the uniform buffer
+            let mut buffer_content = uniform_buffer.write(Duration::new(1, 0)).unwrap();
+
+
+            // since write lock implementd Deref and DerefMut traits,
+            // we can update content directly
+            buffer_content.resolution = [images[0].dimensions()[0] as f32,
+                                         images[0].dimensions()[1] as f32];
+            buffer_content.time += 0.0001;
+        }
 
         submissions.push(command_buffer::submit(&command_buffer, &queue).unwrap());
 
@@ -287,3 +346,4 @@ fn main() {
         }
     }
 }
+
