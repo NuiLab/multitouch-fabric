@@ -11,7 +11,7 @@ use winit::get_primary_monitor;
 use winit::Event;
 
 use std::sync::Arc;
-use std::time::Duration;
+use std::time::{Duration, Instant};
 
 use vulkano::instance::Instance;
 use vulkano::device::Device;
@@ -288,6 +288,11 @@ fn main() {
         .collect::<Vec<_>>();
 
     let mut submissions: Vec<Arc<Submission>> = Vec::new();
+    let mut mx: f32 = -1.0;
+    let mut my: f32 = -1.0;
+    let mut mleft: f32 = 0.0;
+    let now = Instant::now();
+    let totalTime: f32 = 0.0;
 
     loop {
 
@@ -311,13 +316,11 @@ fn main() {
         {
             // aquiring write lock for the uniform buffer
             let mut buffer_content = uniform_buffer.write(Duration::new(1, 0)).unwrap();
-
-
             // since write lock implementd Deref and DerefMut traits,
             // we can update content directly
-            buffer_content.resolution = [images[0].dimensions()[0] as f32,
-                                         images[0].dimensions()[1] as f32];
-            buffer_content.time += 0.0001;
+            buffer_content.time = now.elapsed().as_secs() as f32 +
+                                  (now.elapsed().subsec_nanos() as f32 / 1000000000.0);
+            buffer_content.mouse = [mx, my, mleft, 0.0];
         }
 
         submissions.push(command_buffer::submit(&command_buffer, &queue).unwrap());
@@ -335,10 +338,16 @@ fn main() {
                     return;
                 }
                 Event::MouseInput(winit::ElementState::Pressed, winit::MouseButton::Left) => {
-                    println!("Mouse");
+                    println!("Mouse Down");
+                    mleft = 1.0;
+                }
+                Event::MouseInput(winit::ElementState::Released, winit::MouseButton::Left) => {
+                    println!("Mouse Up");
+                    mleft = 0.0;
                 }
                 Event::MouseMoved(x, y) => {
-                    println!("{:?} {:?}", x, y);
+                    mx = x as f32;
+                    my = y as f32;
                 }
                 Event::Closed => return,
                 _ => (),
