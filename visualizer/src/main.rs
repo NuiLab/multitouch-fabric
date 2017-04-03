@@ -14,7 +14,6 @@ use std::time::{Duration, Instant};
 
 use vulkano::instance::Instance;
 use vulkano::device::Device;
-use vulkano::descriptor::pipeline_layout;
 use vulkano::swapchain::{Swapchain, SurfaceTransform};
 use vulkano::buffer::{BufferUsage, CpuAccessibleBuffer};
 use vulkano::pipeline::{GraphicsPipeline, GraphicsPipelineParams};
@@ -24,7 +23,6 @@ use vulkano::pipeline::input_assembly::InputAssembly;
 use vulkano::pipeline::vertex::SingleBufferDefinition;
 use vulkano::pipeline::multisample::Multisample;
 use vulkano::pipeline::viewport::{ViewportsState, Viewport, Scissor};
-use vulkano::descriptor::pipeline_layout::EmptyPipeline;
 use vulkano::framebuffer::{Framebuffer, Subpass};
 use vulkano::command_buffer;
 use vulkano::command_buffer::DynamicState;
@@ -287,7 +285,6 @@ fn main() {
     let mut my: f32 = -1.0;
     let mut mleft: f32 = 0.0;
     let now = Instant::now();
-    let totalTime: f32 = 0.0;
 
     loop {
 
