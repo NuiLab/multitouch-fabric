@@ -1,3 +1,5 @@
+extern crate serial;
+
 use std::env;
 use std::time::Duration;
 
@@ -6,12 +8,12 @@ use serial::prelude::*;
 
 
 // Read data from Arduino Serial Port on PC.
-pub fn readData() {
+pub fn read_data() {
     serial::open("COM1").unwrap();
     serial::windows::COMPort::open("COM1").unwrap();
 }
 
-fn interact<T: SerialPort>(port: &mut T) -> serial::Result<()> {
+pub fn interact<T: SerialPort>(port: &mut T) -> serial::Result<()> {
     try!(port.configure(&SETTINGS));
     try!(port.set_timeout(Duration::from_secs(1)));
 

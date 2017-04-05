@@ -9,7 +9,7 @@ layout(set = 0, binding = 0) uniform Block {
     vec2 resolution;
     float time;
     float _padding1_;
-    float fabric[4][4];
+    mat4 fabric;
 } uniforms;
 
 layout (location = 0) in vec2 iUV;
@@ -135,6 +135,40 @@ vec3 colorDodge(vec3 inColor, vec3 blend)
     return vec3(inColor / (1.0 - blend));
 }
 
+vec3 colorOverlay(vec3 inColor, vec3 blend)
+{
+    vec3 outColor = vec3(0.);
+
+    if (inColor.r > 0.5)
+    {
+        outColor.r = (1.0 - (1.0 - 2.0 * (inColor.r - 0.5)) * (1.0 - blend.r));
+    }
+    else
+    {   
+        outColor.r = ((2.0 * inColor.r) * blend.r);
+    }
+
+    if (inColor.g > 0.5)
+    {
+        outColor.g = (1.0 - (1.0 - 2.0 * (inColor.g - 0.5)) * (1.0 - blend.g));
+    }
+    else
+    {   
+        outColor.g = ((2.0 * inColor.g) * blend.g);
+    }
+
+    if (inColor.b > 0.5)
+    {
+        outColor.b = (1.0 - (1.0 - 2.0 * (inColor.b - 0.5)) * (1.0 - blend.b));
+    }
+    else
+    {   
+        outColor.b = ((2.0 * inColor.b) * blend.b);
+    }
+
+    return outColor;
+}
+
 float saturate(float i)
 {
     return clamp(i, 0., 1.);
@@ -144,24 +178,36 @@ float saturate(float i)
 * Distance Functions
 *************************************************************************/
 
-float distSin(vec2 p, float time)
+float distSin(vec2 p, float time, vec4 column)
 {
-    float f, df, d;
-    f = sin(p.y + time);
+    float f, df, d, weight, zoom;
+    zoom = 1.;
+    f = sin(p.y + time );
     df = (f - sin(p.y + time + EPSILON )) / EPSILON;
-    d = (abs(p.x) - f) / sqrt(.05 + df * df);
+    weight = 1. * (
+      (1.8 - smoothstep(0.0, .98 * column[0], abs(-5.5 - p.y)))
+     * (1.8 - smoothstep(0.0, .98 * column[1], abs(-2. -  p.y)))
+     * (1.8 - smoothstep(0.0, .98 * column[2], 1. - abs(2. - p.y)))
+     * (1.8 - smoothstep(0.0, .98 * column[3], 1. - abs(5.5 - p.y)))
+    );
+
+    d = (abs(p.x * weight) - f) / sqrt(.05 + df * df);
 
     if (p.x < 0.)
-        d = (abs(p.x) + f) / sqrt(.05 + df * df);
+        d = (abs(p.x * weight) + f) / sqrt(.05 + df * df);
 
-    return 1.0 - smoothstep(.0, .1, d);
+     return 1.0 - smoothstep(.0, .1, d);
 }
 
-vec3 chromaSin(vec2 p, float time) {
+vec3 chromaSin(vec2 p, float time, vec4 column) {
+
+    // Output
     vec3 col = vec3(0.);
-    col += vec3(distSin(p, time + (TAU / 4)), 0., 0.);
-    col += vec3(0., distSin(vec2(1.1, 1.) * p, 1.1 * time + (2 * TAU / 4)), 0.);
-    col += vec3(0., 0., distSin(vec2(1.2, 1.) * p, 1.2 * time + (3 * TAU / 4)));
+    time *= .3;
+
+    col += vec3(distSin(p, time + (TAU / 4), column), 0., 0.);
+    col += vec3(0., distSin(vec2(1.1, 1.) * p + vec2(.1, 0.), 1.1 * -time + (2 * TAU / 4), column), 0.);
+    col += vec3(0., 0., distSin(vec2(1.2, 1.) * p + vec2(.3, 0.), 1.5 * time + (3 * TAU / 4), column));
     return col;
 }
 /*************************************************************************
@@ -177,23 +223,31 @@ void main()
     vec2 uvc = (uv - vec2(.5));
     float time = uniforms.time * 4.;
 
-    // Mouse Cursor
-    vec2 mouse = (((uniforms.mouse.xy / uniforms.resolution) - vec2(.5)) * aspectRatio) + vec2(.5);
-    float cursor = (1. - saturate(dot((uv - mouse) * 16., (uv - mouse) * 16.))) * (.5 * uniforms.mouse.z);
-    col += vec3(cursor);
-
     // Noise Back
     col += mix(vec3(.157, .153, .169), abs(snoise(vec3(3. * uv, time * .1)) * vec3(.1, .12, .15)), 0.5);
 
+    // Grid Highlights
+    ivec2 grid = ivec2(floor(iUV * vec2(4.)));
+    col += .05 * uniforms.fabric[grid.x][grid.y];
+
+    // Mouse Cursor
+    vec2 mouse = (((uniforms.mouse.xy / uniforms.resolution) - vec2(.5)) * aspectRatio) + vec2(.5);
+    float cursor = (1. - saturate(dot((uv - mouse) * 16., (uv - mouse) * 16.))) * (.5 * uniforms.mouse.z);
+    col += vec3(cursor * .2);
+
     // Sin Waves
     vec2 p = uvc * 24.;
-    col += chromaSin(p + vec2(snoise(vec3(time * 0.2, 3. * uv.y, 2.89 * uv.y))) + vec2(2.5, 0.5), time);
-    col += chromaSin(p + vec2(snoise(vec3(time * 0.23, 2.3 * uv.y, 2.96 * uv.y))) + vec2(-2.5, 2.), 1.1 * time);
-    col += chromaSin(p + vec2(snoise(vec3(time * 0.24, 3.04 * uv.y, 2.91 * uv.y))) + vec2(7.5, 4.), 1.2 * time);
-    col += chromaSin(p + vec2(snoise(vec3(time * 0.25, 2.8 * uv.y, 2.86 * uv.y))) + vec2(-7.5, -3.), 1.3 * time);
+    //+ vec2(snoise(vec3(time * 0.13, 2.3 * uv.y, 2.92 * uv.y))) +
+    // + vec2(snoise(vec3(time * 0.23, 2.3 * uv.y, 2.96 * uv.y))) 
+    //+ vec2(snoise(vec3(time * 0.24, 3.04 * uv.y, 2.91 * uv.y))) 
+    //+ vec2(snoise(vec3(time * 0.25, 2.8 * uv.y, 2.86 * uv.y))) 
+    col += chromaSin(p  + vec2(2.5, 0.112), time, uniforms.fabric[1]);
+    col += chromaSin(p + vec2(-2.5,0.11), 1.1 * time, uniforms.fabric[2]);
+    col += chromaSin(p + vec2(7.5, 0.2), 1.2 * time, uniforms.fabric[0]);
+    col += chromaSin(p + vec2(-7.5, 0.1), 1.3 * time, uniforms.fabric[3]);
 
     // Vignette
     col = mix(col, vec3(.157, .153, .169), dot(uvc * 2.5, uvc * 2.5));
-
+    
     oColor = vec4(col, 1.0);
 }
