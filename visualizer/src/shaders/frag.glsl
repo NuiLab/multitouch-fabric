@@ -228,7 +228,7 @@ void main()
 
     // Grid Highlights
     ivec2 grid = ivec2(floor(iUV * vec2(4.)));
-    col += .05 * uniforms.fabric[grid.x][grid.y];
+    col += .1 * uniforms.fabric[grid.x][grid.y];
 
     // Mouse Cursor
     vec2 mouse = (((uniforms.mouse.xy / uniforms.resolution) - vec2(.5)) * aspectRatio) + vec2(.5);
