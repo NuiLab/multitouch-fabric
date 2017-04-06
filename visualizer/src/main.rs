@@ -7,6 +7,7 @@ extern crate winit;
 extern crate vulkano_win;
 
 use serial::prelude::*;
+use std::io::Read;
 
 use winit::get_primary_monitor;
 use winit::Event;
@@ -327,7 +328,7 @@ fn main() {
             .build();
 
         {
-            use std::io::Read;
+
 
             // aquiring write lock for the uniform buffer
             let mut buffer_content = uniform_buffer.write(Duration::new(1, 0)).unwrap();
@@ -337,7 +338,7 @@ fn main() {
                                   (now.elapsed().subsec_nanos() as f32 / 1000000000.0);
             buffer_content.mouse = [mx, my, mleft, 0.0];
 
-            let fabric_com = fabric_port.read(&mut buf[..]);
+
 
             buffer_content.fabric =
                 [[1. - buf[3] as f32,
@@ -382,6 +383,8 @@ fn main() {
                 _ => (),
             }
         }
+
+        fabric_port.read(&mut buf[..]);
     }
 }
 
