@@ -7,6 +7,7 @@ extern crate winit;
 extern crate vulkano_win;
 
 mod port;
+use serial::prelude::*;
 
 use winit::get_primary_monitor;
 use winit::Event;
@@ -33,6 +34,15 @@ use vulkano::command_buffer::Submission;
 use vulkano_win::VkSurfaceBuild;
 
 
+const SETTINGS: serial::PortSettings = serial::PortSettings {
+    baud_rate: serial::Baud9600,
+    char_size: serial::Bits8,
+    parity: serial::ParityNone,
+    stop_bits: serial::Stop1,
+    flow_control: serial::FlowNone,
+};
+
+
 mod vs {
     include!{concat!(env!("OUT_DIR"), "/shaders/src/shaders/vert.glsl")}
 }
@@ -43,6 +53,12 @@ mod fs {
 
 fn main() {
     println!("👗🌋 Vulkan Multitouch Frabric Visualizer | Version 0.1.0");
+
+    // Port Init
+    //let mut fabric_port = serial::windows::COMPort::open("COM5").unwrap();
+    let mut buf = vec![0u8; 64];
+    //fabric_port.configure(&SETTINGS);
+    //fabric_port.set_timeout(Duration::from_secs(1));
 
     // Vulkan Instance
     let instance = {
@@ -319,6 +335,19 @@ fn main() {
             buffer_content.time = now.elapsed().as_secs() as f32 +
                                   (now.elapsed().subsec_nanos() as f32 / 1000000000.0);
             buffer_content.mouse = [mx, my, mleft, 0.0];
+
+            //let fabric_com = port::read(&mut fabric_port, &mut buf);
+            let mut i_buf = vec![0i32; 16];
+
+            for i in 0..16 {  
+                i_buf[i] = ((buf[4 * i] as i32) << 24) | ((buf[4 * i + 1] as i32) << 16) | ((buf[4 * i + 2]as i32) << 8) | buf[4 * i + 3] as i32;
+            }
+
+            println!("{:?}", buf);
+            //println!("{:?}", i_buf);
+
+            buf = vec![255; 64];
+
             buffer_content.fabric =
                 [[0., 1., 1., 0.], [0., 0., 1., 0.], [0., 1., 0., 0.], [0., 0., 0., 1.]];
         }
