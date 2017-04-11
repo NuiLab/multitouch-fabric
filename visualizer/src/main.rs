@@ -1,19 +1,25 @@
-extern crate serial;
-extern crate cpal;
-
 #[macro_use]
 extern crate vulkano;
 extern crate winit;
 extern crate vulkano_win;
+extern crate serial;
+extern crate cpal;
+extern crate json;
+
+use std::io::Read;
+use std::io::Write;
+
+use std::sync::Arc;
+use std::sync::mpsc;
+use std::sync::mpsc::{Sender, Receiver};
+
+use std::thread;
+use std::time::{Duration, Instant};
 
 use serial::prelude::*;
-use std::io::Read;
 
 use winit::get_primary_monitor;
 use winit::Event;
-
-use std::sync::Arc;
-use std::time::{Duration, Instant};
 
 use vulkano::instance::Instance;
 use vulkano::device::Device;
@@ -42,6 +48,7 @@ const SETTINGS: serial::PortSettings = serial::PortSettings {
     flow_control: serial::FlowNone,
 };
 
+const DEFAULTCONFIG: &str = "{ \"port\": \"\" }";
 
 mod vs {
     include!{concat!(env!("OUT_DIR"), "/shaders/src/shaders/vert.glsl")}
@@ -67,24 +74,36 @@ fn main() {
     let mut f = file.unwrap();
 
     f.read_to_string(&mut contents)
-        .unwrap();
+        .expect("failed to read");
 
     if contents.is_empty() {
 
         contents.insert_str(0, DEFAULTCONFIG);
 
         f.write_all(contents.as_bytes())
-            .unwrap();
+            .expect("failed to write");
 
         println!("Writing to config file!");
     }
 
+    // Create Threads, Channels, etc.
+    let parsed = json::parse(&contents).expect("failed");
 
     // Port Init
-    let mut fabric_port = serial::windows::COMPort::open("COM5").unwrap();
+
+    let port = parsed["port"].as_str().unwrap();
+    let fabric_port: Option<serial::windows::COMPort> = {
+        if !port.is_empty() {
+            let mut p = serial::windows::COMPort::open(port).expect("fail");
+            p.configure(&SETTINGS);
+            p.set_timeout(Duration::from_millis(33));
+            Some(p)
+        } else {
+            None
+        }
+    };
+
     let mut buf = vec![1u8; 16];
-    fabric_port.configure(&SETTINGS);
-    //fabric_port.set_timeout(Duration::from_secs(1));
 
     // Vulkan Instance
     let instance = {
@@ -334,6 +353,8 @@ fn main() {
     let mut mleft: f32 = 0.0;
     let now = Instant::now();
 
+    let mut p = fabric_port.unwrap();
+
     loop {
 
         submissions.retain(|s| s.destroying_would_block());
@@ -364,7 +385,9 @@ fn main() {
                                   (now.elapsed().subsec_nanos() as f32 / 1000000000.0);
             buffer_content.mouse = [mx, my, mleft, 0.0];
 
-
+            if !port.is_empty() {
+                p.read(&mut buf[..]);
+            }
 
             buffer_content.fabric =
                 [[1. - buf[3] as f32,
@@ -410,7 +433,6 @@ fn main() {
             }
         }
 
-        fabric_port.read(&mut buf[..]);
     }
 }
 

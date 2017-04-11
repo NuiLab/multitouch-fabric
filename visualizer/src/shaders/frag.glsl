@@ -185,16 +185,16 @@ float distSin(vec2 p, float time, vec4 column)
     f = sin(p.y + time );
     df = (f - sin(p.y + time + EPSILON )) / EPSILON;
     weight = 1. * (
-      (1.8 - smoothstep(0.0, .98 * column[0], abs(-5.5 - p.y)))
-     * (1.8 - smoothstep(0.0, .98 * column[1], abs(-2. -  p.y)))
-     * (1.8 - smoothstep(0.0, .98 * column[2], 1. - abs(2. - p.y)))
-     * (1.8 - smoothstep(0.0, .98 * column[3], 1. - abs(5.5 - p.y)))
+      (1.2 - smoothstep(0.0, .98 * column[0], 1. - abs(-5.5 - p.y)))
+     * (1.2 - smoothstep(0.0, .98 * column[1], 1. - abs(-2. -  p.y)))
+     * (1.2 - smoothstep(0.0, .98 * column[2], 1. - abs(2. - p.y)))
+     * (1.2 - smoothstep(0.0, .98 * column[3], 1. - abs(5.5 - p.y)))
     );
 
     d = (abs(p.x * weight) - f) / sqrt(.05 + df * df);
 
     if (p.x < 0.)
-        d = (abs(p.x * weight) + f) / sqrt(.05 + df * df);
+        d = (abs(p.x * -weight) + f) / sqrt(.05 + df * df);
 
      return 1.0 - smoothstep(.0, .1, d);
 }
@@ -247,7 +247,7 @@ void main()
     col += chromaSin(p + vec2(-7.5, 0.1), 1.3 * time, uniforms.fabric[3]);
 
     // Vignette
-    col = mix(col, vec3(.157, .153, .169), dot(uvc * 2.5, uvc * 2.5));
+    col = mix(col, vec3(.157, .153, .169), dot(uvc * 2.1, uvc * 2.1));
     
     oColor = vec4(col, 1.0);
 }
