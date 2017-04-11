@@ -54,6 +54,32 @@ mod fs {
 fn main() {
     println!("👗🌋 Vulkan Multitouch Frabric Visualizer | Version 0.1.0");
 
+
+    // Find JSON config file, if it doesn't exist, create one.
+    let file = std::fs::OpenOptions::new()
+        .read(true)
+        .write(true)
+        .create(true)
+        .open("config.json");
+
+    // Read file
+    let mut contents = String::new();
+    let mut f = file.unwrap();
+
+    f.read_to_string(&mut contents)
+        .unwrap();
+
+    if contents.is_empty() {
+
+        contents.insert_str(0, DEFAULTCONFIG);
+
+        f.write_all(contents.as_bytes())
+            .unwrap();
+
+        println!("Writing to config file!");
+    }
+
+
     // Port Init
     let mut fabric_port = serial::windows::COMPort::open("COM5").unwrap();
     let mut buf = vec![1u8; 16];
