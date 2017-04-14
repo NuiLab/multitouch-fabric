@@ -407,6 +407,8 @@ fn main() {
                                       1. - buf[4] as f32,
                                       1. - buf[8] as f32,
                                       1. - buf[12] as f32]];
+
+        //buf = vec![1u8; 16];
         }
 
         submissions.push(command_buffer::submit(&command_buffer, &queue).unwrap());

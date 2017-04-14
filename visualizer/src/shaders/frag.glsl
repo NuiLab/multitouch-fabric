@@ -241,10 +241,12 @@ void main()
     // + vec2(snoise(vec3(time * 0.23, 2.3 * uv.y, 2.96 * uv.y))) 
     //+ vec2(snoise(vec3(time * 0.24, 3.04 * uv.y, 2.91 * uv.y))) 
     //+ vec2(snoise(vec3(time * 0.25, 2.8 * uv.y, 2.86 * uv.y))) 
+    col += chromaSin(p + vec2(7.5, 0.2), 1.2 * time, uniforms.fabric[0]);
     col += chromaSin(p  + vec2(2.5, 0.112), time, uniforms.fabric[1]);
     col += chromaSin(p + vec2(-2.5,0.11), 1.1 * time, uniforms.fabric[2]);
-    col += chromaSin(p + vec2(7.5, 0.2), 1.2 * time, uniforms.fabric[0]);
     col += chromaSin(p + vec2(-7.5, 0.1), 1.3 * time, uniforms.fabric[3]);
+
+
 
     // Vignette
     col = mix(col, vec3(.157, .153, .169), dot(uvc * 2.1, uvc * 2.1));
