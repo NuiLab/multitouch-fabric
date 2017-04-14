@@ -73,8 +73,7 @@ fn main() {
     let mut contents = String::new();
     let mut f = file.unwrap();
 
-    f.read_to_string(&mut contents)
-        .expect("failed to read");
+    f.read_to_string(&mut contents).expect("failed to read");
 
     if contents.is_empty() {
 
@@ -123,7 +122,8 @@ fn main() {
         .unwrap();
 
     // Graphics Queue Supported
-    let queue = physical.queue_families()
+    let queue = physical
+        .queue_families()
         .find(|q| q.supports_graphics() && window.surface().is_supported(q).unwrap_or(false))
         .expect("Couldn't find a graphical queue family.");
 
@@ -147,7 +147,8 @@ fn main() {
     // Swapchain, Swapchain Images
     let (swapchain, images) = {
 
-        let caps = window.surface()
+        let caps = window
+            .surface()
             .get_capabilities(&physical)
             .expect("failed to get surface capabilities");
 
@@ -212,9 +213,7 @@ fn main() {
         CpuAccessibleBuffer::from_iter(&device,
                                        &BufferUsage::all(),
                                        Some(queue.family()),
-                                       [0u32, 1, 2, 1, 2, 3]
-                                           .iter()
-                                           .cloned())
+                                       [0u32, 1, 2, 1, 2, 3].iter().cloned())
                 .expect("failed to create IBO")
     };
 
@@ -337,14 +336,15 @@ fn main() {
                                          })
             .unwrap();
 
-    let framebuffers = images.iter()
+    let framebuffers = images
+        .iter()
         .map(|image| {
-            let dimensions = [image.dimensions()[0], image.dimensions()[1], 1];
-            Framebuffer::new(&render_pass,
-                             dimensions,
-                             render_pass::AList { color: image })
-                    .unwrap()
-        })
+                 let dimensions = [image.dimensions()[0], image.dimensions()[1], 1];
+                 Framebuffer::new(&render_pass,
+                                  dimensions,
+                                  render_pass::AList { color: image })
+                         .unwrap()
+             })
         .collect::<Vec<_>>();
 
     let mut submissions: Vec<Arc<Submission>> = Vec::new();
@@ -359,7 +359,9 @@ fn main() {
 
         submissions.retain(|s| s.destroying_would_block());
 
-        let image_num = swapchain.acquire_next_image(Duration::new(1, 0)).unwrap();
+        let image_num = swapchain
+            .acquire_next_image(Duration::new(1, 0))
+            .unwrap();
 
         let command_buffer = PrimaryCommandBufferBuilder::new(&device, queue.family())
             .draw_inline(&render_pass,
@@ -389,17 +391,22 @@ fn main() {
                 p.read(&mut buf[..]);
             }
 
-            buffer_content.fabric =
-                [[1. - buf[3] as f32,
-                  1. - buf[7] as f32,
-                  1. - buf[11] as f32,
-                  1. - buf[15] as f32],
-                 [1. - buf[2] as f32,
-                  1. - buf[6] as f32,
-                  1. - buf[10] as f32,
-                  1. - buf[14] as f32],
-                 [1. - buf[1] as f32, 1. - buf[5] as f32, 1. - buf[9] as f32, 1. - buf[13] as f32],
-                 [1. - buf[0] as f32, 1. - buf[4] as f32, 1. - buf[8] as f32, 1. - buf[12] as f32]];
+            buffer_content.fabric = [[1. - buf[3] as f32,
+                                      1. - buf[7] as f32,
+                                      1. - buf[11] as f32,
+                                      1. - buf[15] as f32],
+                                     [1. - buf[2] as f32,
+                                      1. - buf[6] as f32,
+                                      1. - buf[10] as f32,
+                                      1. - buf[14] as f32],
+                                     [1. - buf[1] as f32,
+                                      1. - buf[5] as f32,
+                                      1. - buf[9] as f32,
+                                      1. - buf[13] as f32],
+                                     [1. - buf[0] as f32,
+                                      1. - buf[4] as f32,
+                                      1. - buf[8] as f32,
+                                      1. - buf[12] as f32]];
         }
 
         submissions.push(command_buffer::submit(&command_buffer, &queue).unwrap());
@@ -435,4 +442,3 @@ fn main() {
 
     }
 }
-
