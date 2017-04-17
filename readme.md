@@ -1,4 +1,4 @@
-![Mockup Showcase](visualizer/images/mockup.png)
+![Mockup Showcase](visualizer/images/devlog/6.gif)
 
 # Multitouch Fabric
 
