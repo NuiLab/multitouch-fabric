@@ -25,9 +25,17 @@ The design consists of three different layers. In order to distinguish between a
 
 - The **Columns** are composed of 4, *4.5 inch* rows of conductive thread facing down with non-conductive thread facing up.
 
-These three layers are sandwiched together, where the Columns and Rows are connected to pins 4-11 on the METRO Mini. 
+These three layers are sandwiched together, where the Columns and Rows are connected to pins 4-11 on the METRO Mini. Pins 8-11 will read (`digitalRead`) which will either read 1 or 0 (High or Low) on the serial monitor.
 
-Pins 8-11 will read (digitalRead) which will either read 1 or 0 (High or Low) on the serial monitor.
+## Visualization
+
+The visualization uses raymarching to render modulating curves that vibrate and change shape according to the position of the user's fingers.
+
+### Data Flow
+
+![Data Flow Visualization](visualizer/images/data-flow.png)
+
+During the application update loop data from the Arduino is read from the serial port, and passed to uniform buffers in Vulkan, and we show the next image in the swapchain. 
 
 [license-img]: http://img.shields.io/:license-mit-blue.svg?style=flat-square
 [license-url]: https://opensource.org/licenses/MIT
