@@ -6,14 +6,9 @@ extern crate serial;
 extern crate cpal;
 extern crate json;
 
-use std::io::Read;
-use std::io::Write;
+mod fabric;
 
 use std::sync::Arc;
-use std::sync::mpsc;
-use std::sync::mpsc::{Sender, Receiver};
-
-use std::thread;
 use std::time::{Duration, Instant};
 
 use serial::prelude::*;
@@ -39,17 +34,6 @@ use vulkano::command_buffer::PrimaryCommandBufferBuilder;
 use vulkano::command_buffer::Submission;
 use vulkano_win::VkSurfaceBuild;
 
-
-const SETTINGS: serial::PortSettings = serial::PortSettings {
-    baud_rate: serial::Baud9600,
-    char_size: serial::Bits8,
-    parity: serial::ParityNone,
-    stop_bits: serial::Stop1,
-    flow_control: serial::FlowNone,
-};
-
-const DEFAULTCONFIG: &str = "{ \"port\": \"\" }";
-
 mod vs {
     include!{concat!(env!("OUT_DIR"), "/shaders/src/shaders/vert.glsl")}
 }
@@ -61,48 +45,7 @@ mod fs {
 fn main() {
     println!("👗🌋 Vulkan Multitouch Frabric Visualizer | Version 0.1.0");
 
-
-    // Find JSON config file, if it doesn't exist, create one.
-    let file = std::fs::OpenOptions::new()
-        .read(true)
-        .write(true)
-        .create(true)
-        .open("config.json");
-
-    // Read file
-    let mut contents = String::new();
-    let mut f = file.unwrap();
-
-    f.read_to_string(&mut contents).expect("failed to read");
-
-    if contents.is_empty() {
-
-        contents.insert_str(0, DEFAULTCONFIG);
-
-        f.write_all(contents.as_bytes())
-            .expect("failed to write");
-
-        println!("Writing to config file!");
-    }
-
-    // Create Threads, Channels, etc.
-    let parsed = json::parse(&contents).expect("failed");
-
-    // Port Init
-
-    let port = parsed["port"].as_str().unwrap();
-    let fabric_port: Option<serial::windows::COMPort> = {
-        if !port.is_empty() {
-            let mut p = serial::windows::COMPort::open(port).expect("fail");
-            p.configure(&SETTINGS);
-            p.set_timeout(Duration::from_millis(33));
-            Some(p)
-        } else {
-            None
-        }
-    };
-
-    let mut buf = vec![1u8; 16];
+    let mut fabric = fabric::Input::new();
 
     // Vulkan Instance
     let instance = {
@@ -353,8 +296,6 @@ fn main() {
     let mut mleft: f32 = 0.0;
     let now = Instant::now();
 
-    let mut p = fabric_port.unwrap();
-
     loop {
 
         submissions.retain(|s| s.destroying_would_block());
@@ -387,28 +328,12 @@ fn main() {
                                   (now.elapsed().subsec_nanos() as f32 / 1000000000.0);
             buffer_content.mouse = [mx, my, mleft, 0.0];
 
-            if !port.is_empty() {
-                p.read(&mut buf[..]);
-            }
+            let buf = fabric.update();
 
-            buffer_content.fabric = [[1. - buf[3] as f32,
-                                      1. - buf[7] as f32,
-                                      1. - buf[11] as f32,
-                                      1. - buf[15] as f32],
-                                     [1. - buf[2] as f32,
-                                      1. - buf[6] as f32,
-                                      1. - buf[10] as f32,
-                                      1. - buf[14] as f32],
-                                     [1. - buf[1] as f32,
-                                      1. - buf[5] as f32,
-                                      1. - buf[9] as f32,
-                                      1. - buf[13] as f32],
-                                     [1. - buf[0] as f32,
-                                      1. - buf[4] as f32,
-                                      1. - buf[8] as f32,
-                                      1. - buf[12] as f32]];
-
-        //buf = vec![1u8; 16];
+            buffer_content.fabric = [[buf[3], buf[7], buf[11], buf[15]],
+                                     [buf[2], buf[6], buf[10], buf[14]],
+                                     [buf[1], buf[5], buf[9], buf[13]],
+                                     [buf[0], buf[4], buf[8], buf[12]]];
         }
 
         submissions.push(command_buffer::submit(&command_buffer, &queue).unwrap());
