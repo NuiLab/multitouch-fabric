@@ -33,7 +33,7 @@ impl Input {
         Input {
             port: create_port(),
             buf: vec![0u8; 32],
-            output: [1.; 16],
+            output: [0.; 16],
         }
     }
 
