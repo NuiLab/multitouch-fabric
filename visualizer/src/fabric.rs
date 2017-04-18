@@ -29,7 +29,7 @@ impl Input {
     pub fn new() -> Input {
         Input {
             port: create_port(),
-            buf: vec![0u8; 16],
+            buf: vec![0u8; 256],
             output: [0.0; 16],
         }
     }
@@ -81,6 +81,7 @@ impl Input {
             }
             None => (),
         }
+
 
         self.output
 
@@ -144,7 +145,7 @@ fn create_port() -> Option<serial::windows::COMPort> {
                             p.configure(&SETTINGS)
                                 .expect("Failed to configure port!");
 
-                            p.set_timeout(Duration::from_millis(8))
+                            p.set_timeout(Duration::from_millis(16))
                                 .expect("Failed to configure port timeout!");
 
                             Some(p)
