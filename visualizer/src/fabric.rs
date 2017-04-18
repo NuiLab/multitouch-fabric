@@ -1,14 +1,10 @@
 extern crate serial;
 extern crate json;
 
-use self::json::JsonValue;
-use self::serial::prelude::*;
+use serial::SerialPort;
 use std::time::Duration;
 use std::fs::OpenOptions;
 use std::io::{Read, Write};
-use std::error::Error;
-use std::str::from_utf8;
-use std::str::FromStr;
 
 const DEFAULTCONFIG: &str = "\
 { 
@@ -52,6 +48,9 @@ impl Input {
 
                     match p.read(&mut self.buf) {
                         Ok(size) => {
+                            if size == 0 {
+                                return self.output;
+                            }
                             for i in 0..size {
                                 // If index == 16, we're done
                                 if index >= self.output.len() {
@@ -94,8 +93,6 @@ fn create_port() -> Option<serial::windows::COMPort> {
 
     let contents = {
 
-        use std::io::Error;
-
         let open = OpenOptions::new()
             .read(true)
             .write(true)
@@ -105,12 +102,12 @@ fn create_port() -> Option<serial::windows::COMPort> {
         let mut contents = String::new();
 
         let mut file = match open {
-            Err(why) => panic!("Couldn't open a handle to ./config.json, are you editing it?"),
+            Err(_) => panic!("Couldn't open a handle to ./config.json, are you editing it?"),
             Ok(file) => file,
         };
 
         match file.read_to_string(&mut contents) {
-            Err(why) => panic!("Couldn't read ./config.json, are you editing it?"),
+            Err(_) => panic!("Couldn't read ./config.json, are you editing it?"),
             Ok(_) => println!("Opened config.json file."),
         }
 
@@ -120,7 +117,7 @@ fn create_port() -> Option<serial::windows::COMPort> {
 
             match file.write_all(contents.as_bytes()) {
 
-                Err(why) => panic!("Couldn't write to ./config.json, are you editing it?"),
+                Err(_) => panic!("Couldn't write to ./config.json, are you editing it?"),
                 Ok(_) => println!("Created default ./config.json file."),
             }
         }
@@ -130,7 +127,7 @@ fn create_port() -> Option<serial::windows::COMPort> {
 
     {
         let json_data = match json::parse(&contents) {
-            Err(why) => panic!("JSON data couldn't be parsed, verify your JSON."),
+            Err(_) => panic!("JSON data couldn't be parsed, verify your JSON."),
             Ok(data) => data,
         };
 
@@ -140,17 +137,19 @@ fn create_port() -> Option<serial::windows::COMPort> {
 
             Some(port_name) => {
 
-                let mut port: Option<serial::windows::COMPort> =
+                let port: Option<serial::windows::COMPort> =
                     match serial::windows::COMPort::open(port_name) {
                         Ok(mut p) => {
 
-                            p.configure(&SETTINGS);
+                            p.configure(&SETTINGS)
+                                .expect("Failed to configure port!");
 
-                            p.set_timeout(Duration::from_millis(8));
+                            p.set_timeout(Duration::from_millis(8))
+                                .expect("Failed to configure port timeout!");
 
                             Some(p)
                         }
-                        Err(why) => None,
+                        Err(_) => None,
                     };
 
                 port

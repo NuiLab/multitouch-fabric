@@ -11,7 +11,6 @@ mod fabric;
 use std::sync::Arc;
 use std::time::{Duration, Instant};
 
-use serial::prelude::*;
 
 use winit::get_primary_monitor;
 use winit::Event;
