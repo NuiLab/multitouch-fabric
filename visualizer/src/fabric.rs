@@ -8,6 +8,7 @@ use std::fs::OpenOptions;
 use std::io::{Read, Write};
 use std::error::Error;
 use std::str::from_utf8;
+use std::str::FromStr;
 
 const DEFAULTCONFIG: &str = "\
 { 
@@ -44,7 +45,7 @@ impl Input {
 
         let mut new_line = String::new();
 
-        let mut buf = vec![0u8; 256];
+        let mut buf = vec![0u8; 32];
 
         {
             match self.port {
@@ -57,62 +58,72 @@ impl Input {
                                 } else {
                                     let str_buf = match from_utf8(&mut buf) {
                                         Ok(v) => v,
-                                        Err(e) => panic!("Invalid UTF-8 sequence: {}", e),
+                                        Err(e) => continue,
                                     };
 
                                     new_line.push_str(str_buf);
                                 }
                             }
                             Err(_) => break,
-                    }
+                        }
 
-                    // Clear buffer
-                    buf = vec![0u8; 256];
+                        // Clear buffer
+                        buf = vec![0u8; 32];
 
-                    let tokens: Vec<&str> = new_line.split_whitespace().collect();
+                        let mut token_index = match new_line.find('\n') {
+                            Some(nl) => {
+                                new_line = String::from_str(new_line.split_at(nl).1).unwrap();
+                            }
+                            None => (),
+                        };
 
-                    if tokens.len() >= 16 {
-                        break;
-                    } 
-            }
+                        let tokens: Vec<&str> = new_line.split_whitespace().collect();
 
-
-            // Traverse new_line till we find a \n, then split it there
-            let mut token_index = match new_line.find('\n') {
-                Some(nl) => nl,
-                None => 0
-            };
-
-            let tokens = new_line.split_at(token_index).1.split_whitespace();
-
-            for token in tokens {
-                match token {
-                    x => {
-                        let f = x.parse::<f32>();
-                        match f {
-                            Ok(num) => ftoken.push(num),
-                            Err(e) => ftoken.push(1.),
+                        if tokens.len() >= 16 {
+                            break;
                         }
                     }
-                }
-            }
 
-        for (i, t) in ftoken.iter().enumerate() {
-            if i < self.output.len() {
-                self.output[i] = *t;
+
+                    // Traverse new_line till we find a \n, then split it there
+                    let mut token_index = match new_line.find('\n') {
+                        Some(nl) => nl,
+                        None => 0,
+                    };
+
+                    let tokens = new_line.split_at(token_index).1.split_whitespace();
+
+                    // Make sure that this is at least 16
+
+                    for token in tokens {
+                        match token {
+                            x => {
+                                let f = x.parse::<f32>();
+                                match f {
+                                    Ok(num) => ftoken.push(1. - num),
+                                    Err(e) => ftoken.push(0.),
+                                }
+                            }
+                        }
+                    }
+
+                    for i in 0..self.output.len() {
+                        if i < ftoken.len() {
+                            self.output[i] = ftoken[i];
+                        } else {
+                            self.output[i] = 0.;
+                        }
+                    }
+                    self.buf = vec![0u8; 32];
+                }
+                None => (),
             }
         }
-        self.buf = vec![0u8; 32];
-            },
-            None => ()
-                }
-            }
-          
 
         self.output
-    
 
-}
+
+    }
 }
 
 fn create_port() -> Option<serial::windows::COMPort> {
@@ -155,30 +166,34 @@ fn create_port() -> Option<serial::windows::COMPort> {
         contents
     };
 
-{
-    let json_data = match json::parse(&contents) {
-        Err(why) => panic!("JSON data couldn't be parsed, verify your JSON."),
-        Ok(data) => data,
-    };
+    {
+        let json_data = match json::parse(&contents) {
+            Err(why) => panic!("JSON data couldn't be parsed, verify your JSON."),
+            Ok(data) => data,
+        };
 
-    let portstr = json_data["port"].as_str();
+        let portstr = json_data["port"].as_str();
 
-    match portstr {
+        match portstr {
 
-        Some(port_name) => {
+            Some(port_name) => {
 
-            let mut port: Option<serial::windows::COMPort> = match serial::windows::COMPort::open(port_name) {
-                Ok(mut p) => {
-                         p.configure(&SETTINGS);
+                let mut port: Option<serial::windows::COMPort> =
+                    match serial::windows::COMPort::open(port_name) {
+                        Ok(mut p) => {
 
-            p.set_timeout(Duration::from_millis(16));       
-                    Some(p)},
-                Err(why) => None,
-            };
+                            p.configure(&SETTINGS);
 
-            port
-        },
-        None => None
+                            p.set_timeout(Duration::from_millis(16));
+
+                            Some(p)
+                        }
+                        Err(why) => None,
+                    };
+
+                port
+            }
+            None => None,
+        }
     }
-}
 }
