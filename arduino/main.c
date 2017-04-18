@@ -36,16 +36,15 @@ void loop()
 {
   pollInputs(temp0);
 
+  Serial.write(255);
+
   for (int i = 0; i < 4; i++)
   {
     for (int j = 0; j < 4; j++)
     {
-      Serial.print (temp0[i][j]);
-      Serial.print(" ");
+      Serial.write(temp0[i][j]);
     }
   }
-
-  Serial.print("\n");
 
   for (int i = 0; i < 4; i++)
   {

@@ -33,95 +33,57 @@ impl Input {
     pub fn new() -> Input {
         Input {
             port: create_port(),
-            buf: vec![0u8; 32],
-            output: [0.; 16],
+            buf: vec![0u8; 16],
+            output: [0.0; 16],
         }
     }
 
     // Synchronous Input Update
     pub fn update(&mut self) -> [f32; 16] {
 
-        let mut ftoken: Vec<f32> = Vec::new();
+        self.output = [0.0f32; 16];
 
-        let mut new_line = String::new();
+        match self.port {
 
-        let mut buf = vec![0u8; 32];
+            Some(ref mut p) => {
+                let mut write = false;
+                let mut index = 0;
+                loop {
 
-        {
-            match self.port {
-                Some(ref mut p) => {
-                    loop {
-                        match p.read(&mut buf) {
-                            Ok(size) => {
-                                if size == 0 {
+                    match p.read(&mut self.buf) {
+                        Ok(size) => {
+                            for i in 0..size {
+                                // If index == 16, we're done
+                                if index >= self.output.len() {
+                                    break;
+                                }
+                                // if we encounter the header (255), begin pushing data to v.
+                                if self.buf[i] == 255 {
+                                    write = true;
                                     continue;
-                                } else {
-                                    let str_buf = match from_utf8(&mut buf) {
-                                        Ok(v) => v,
-                                        Err(e) => continue,
-                                    };
+                                }
 
-                                    new_line.push_str(str_buf);
+                                if write {
+                                    self.output[index] = 1. - self.buf[i] as f32;
+                                    index += 1;
+                                    if index >= self.output.len() {
+                                        break;
+                                    }
                                 }
                             }
-                            Err(_) => break,
                         }
-
-                        // Clear buffer
-                        buf = vec![0u8; 32];
-
-                        let mut token_index = match new_line.find('\n') {
-                            Some(nl) => {
-                                new_line = String::from_str(new_line.split_at(nl).1).unwrap();
-                            }
-                            None => (),
-                        };
-
-                        let tokens: Vec<&str> = new_line.split_whitespace().collect();
-
-                        if tokens.len() >= 16 {
-                            break;
-                        }
-                    }
-
-
-                    // Traverse new_line till we find a \n, then split it there
-                    let mut token_index = match new_line.find('\n') {
-                        Some(nl) => nl,
-                        None => 0,
+                        Err(_) => (),
                     };
 
-                    let tokens = new_line.split_at(token_index).1.split_whitespace();
-
-                    // Make sure that this is at least 16
-
-                    for token in tokens {
-                        match token {
-                            x => {
-                                let f = x.parse::<f32>();
-                                match f {
-                                    Ok(num) => ftoken.push(1. - num),
-                                    Err(e) => ftoken.push(0.),
-                                }
-                            }
-                        }
+                    if index >= self.output.len() {
+                        break;
                     }
-
-                    for i in 0..self.output.len() {
-                        if i < ftoken.len() {
-                            self.output[i] = ftoken[i];
-                        } else {
-                            self.output[i] = 0.;
-                        }
-                    }
-                    self.buf = vec![0u8; 32];
                 }
-                None => (),
             }
+            None => (),
         }
 
         self.output
-
 
     }
 }
@@ -184,7 +146,7 @@ fn create_port() -> Option<serial::windows::COMPort> {
 
                             p.configure(&SETTINGS);
 
-                            p.set_timeout(Duration::from_millis(16));
+                            p.set_timeout(Duration::from_millis(8));
 
                             Some(p)
                         }
